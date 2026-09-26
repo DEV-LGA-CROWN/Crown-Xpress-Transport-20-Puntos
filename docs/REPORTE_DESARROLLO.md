@@ -610,7 +610,48 @@ Crown Xpress Transport/
 
 ---
 
+---
+
+## 📋 Septiembre 25, 2026 — Corrección de datos y filtros de equipo
+
+### Corrección de inspecciones sin yarda asignada
+
+**Problema:** Un usuario pudo realizar inspecciones sin tener yardas asignadas, dejando 668 inspecciones con `location` vacío y 4 inspecciones en una yarda incorrecta (`Yard A - Laredo`).
+
+**Acción:** Actualización directa en PostgreSQL (`crown-postgres` en VPS IONOS):
+
+```sql
+UPDATE inspections SET location = 'CXT6'
+WHERE location = '' OR location IS NULL OR location <> 'CXT6';
+```
+
+**Resultado:** 680 inspecciones reasignadas a `CXT6` (yarda 6).
+
+| Antes | Después |
+|-------|---------|
+| (vacío): 668 | CXT6: 680 |
+| Yard A - Laredo: 4 | — |
+| CXT6: 8 | — |
+
+**Pendiente:** Validar por qué el sistema permitió inspeccionar sin yarda asignada para evitar que vuelva a ocurrir.
+
+### Nuevos filtros en Vista Supervisor
+
+Commit `735175c` — `src/components/SupervisorView.jsx`
+
+| Filtro | Tipo | Descripción |
+|--------|------|-------------|
+| **Tipo Equipo** | Dropdown | Filtra por `trailer_type`: BOBTAIL, BOX, RABON, CONTAINER, OTHER |
+| **Equipo (eqpcode)** | Texto | Búsqueda parcial en `equipment_nomenclature`, `trailer_number`, `container_number`, `tractor_number`, `customer_prefix`, `crown_fleet` |
+
+Ejemplos de búsqueda eqpcode: `CXT`, `5775`, `MSDU`, `R020`, `TCLU-848914-9`.
+
+El botón **Limpiar** resetea ambos filtros junto con los existentes.
+
+**Estado:** ✅ Pushed a `main` y `preproduccion`
+
+---
+
 *Documento generado el 15 de Junio de 2026*
+*Última actualización: 25 de Septiembre de 2026*
 *Crown Xpress Transport - Sistema de Inspección de 20 Puntos*
-*Total de desarrollo: ~25 días (Mayo 21 - Junio 15, 2026)*
-*136 deployments realizados*
