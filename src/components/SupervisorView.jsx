@@ -53,6 +53,8 @@ export default function SupervisorView() {
   const [filterYard, setFilterYard] = useState('')
   const [filterGuard, setFilterGuard] = useState('')
   const [filterTrailer, setFilterTrailer] = useState('')
+  const [filterEquipType, setFilterEquipType] = useState('')
+  const [filterEquipment, setFilterEquipment] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
@@ -89,6 +91,7 @@ export default function SupervisorView() {
   // Unique values for filter dropdowns
   const yards = useMemo(() => [...new Set(inspections.map(i => i.location).filter(Boolean))].sort(), [inspections])
   const guards = useMemo(() => [...new Set(inspections.map(i => i.guard_name).filter(Boolean))].sort(), [inspections])
+  const equipTypes = useMemo(() => [...new Set(inspections.map(i => i.trailer_type).filter(Boolean))].sort(), [inspections])
 
   // Filtered results
   const filtered = useMemo(() => {
@@ -96,12 +99,25 @@ export default function SupervisorView() {
       if (filterYard && i.location !== filterYard) return false
       if (filterGuard && i.guard_name !== filterGuard) return false
       if (filterTrailer && !i.trailer_number?.toLowerCase().includes(filterTrailer.toLowerCase())) return false
+      if (filterEquipType && i.trailer_type !== filterEquipType) return false
+      if (filterEquipment) {
+        const q = filterEquipment.toLowerCase()
+        const haystack = [
+          i.equipment_nomenclature,
+          i.trailer_number,
+          i.container_number,
+          i.tractor_number,
+          i.customer_prefix,
+          i.crown_fleet
+        ].filter(Boolean).join(' ').toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
       if (filterStatus && i.status !== filterStatus) return false
       if (filterDateFrom && new Date(i.created_at) < new Date(filterDateFrom)) return false
       if (filterDateTo && new Date(i.created_at) > new Date(filterDateTo + 'T23:59:59')) return false
       return true
     })
-  }, [inspections, filterYard, filterGuard, filterTrailer, filterStatus, filterDateFrom, filterDateTo])
+  }, [inspections, filterYard, filterGuard, filterTrailer, filterEquipType, filterEquipment, filterStatus, filterDateFrom, filterDateTo])
 
   // Paginate the flat filtered list before grouping
   const { page, pageSize, pageItems, totalPages, setPage, setPageSize } = usePagination(filtered, 'sv_pageSize')
@@ -122,6 +138,8 @@ export default function SupervisorView() {
     setFilterYard('')
     setFilterGuard('')
     setFilterTrailer('')
+    setFilterEquipType('')
+    setFilterEquipment('')
     setFilterStatus('')
     setFilterDateFrom('')
     setFilterDateTo('')
@@ -477,6 +495,38 @@ export default function SupervisorView() {
                   value={filterTrailer}
                   onChange={e => setFilterTrailer(e.target.value)}
                   placeholder="T-12345"
+                  className="w-full pl-7 pr-2 py-1.5 text-sm border border-slate-200 rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Equipment Type */}
+            <div>
+              <label className="text-xs font-semibold text-slate-600 mb-1">
+                {language === 'es' ? 'Tipo Equipo' : 'Equipment Type'}
+              </label>
+              <select
+                value={filterEquipType}
+                onChange={e => setFilterEquipType(e.target.value)}
+                className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg"
+              >
+                <option value="">{language === 'es' ? 'Todos' : 'All'}</option>
+                {equipTypes.map(et => <option key={et} value={et}>{et}</option>)}
+              </select>
+            </div>
+
+            {/* Equipment / eqpcode search */}
+            <div>
+              <label className="text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
+                <Truck className="w-3 h-3" /> {language === 'es' ? 'Equipo (eqpcode)' : 'Equipment (eqpcode)'}
+              </label>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                <input
+                  type="text"
+                  value={filterEquipment}
+                  onChange={e => setFilterEquipment(e.target.value)}
+                  placeholder="CXT, 5775, MSDU..."
                   className="w-full pl-7 pr-2 py-1.5 text-sm border border-slate-200 rounded-lg"
                 />
               </div>
