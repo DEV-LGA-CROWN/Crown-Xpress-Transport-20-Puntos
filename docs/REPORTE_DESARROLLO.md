@@ -690,6 +690,34 @@ El botón **Limpiar** resetea ambos filtros junto con los existentes.
 Commit pendiente — `src/components/SupervisorView.jsx`:
 - `limit` de listInspections subido de 500 → 5000 (para mostrar todas las inspecciones importadas)
 - Renombrado "Trailer" → "Unidad" en: filtro, opción de agrupar, y etiqueta "Tipo Remolque" → "Tipo Unidad"
+- Posteriormente `limit` cambiado a `'all'` (sin límite) — el historial completo siempre se muestra; la API acepta `limit=all`
+
+### Infraestructura del VPS — estado verificado (28-sep-2026)
+
+**Contenedor:** `20-puntos-crown-postgres` (`postgres:16-alpine`, healthy, `127.0.0.1:5433→5432`)
+
+**Directorio compose:** `/opt/20-puntos-crown-postgres/` (renombrado desde `/opt/crown-postgres` por Martin Bogarin el 28-sep). Las labels `com.docker.compose.project.*` del contenedor aún apuntan al path viejo — usar `cd /opt/20-puntos-crown-postgres && docker compose ...` para operarlo.
+
+```
+/opt/20-puntos-crown-postgres/
+├── .env                  # credenciales (POSTGRES_USER/PASSWORD)
+├── docker-compose.yml    # postgres + SSL + pgdata volume
+├── init/                 # docker-entrypoint-initdb.d
+└── tls/                  # server.crt + server.key (ssl=on)
+```
+
+**Bases de datos dentro del contenedor:**
+
+| DB | Qué es | Borrar |
+|----|--------|--------|
+| `crownxpress` | BD real de la app | ❌ principal |
+| `postgres` | BD de mantenimiento por defecto (psql, pg_dump, healthcheck `pg_isready`, entrypoint) | ❌ |
+| `template0` | Plantilla inmutable para crear DBs | ❌ PostgreSQL no lo permite |
+| `template1` | Plantilla por defecto de `CREATE DATABASE` | ❌ |
+
+`neon_import` (BD temporal usada en la migración) ya fue eliminada — no quedan residuos.
+
+**Compose del contenedor** (`docker-compose.yml`): SSL habilitado, `max_connections=50`, `shared_buffers=256MB`, healthcheck `pg_isready -U crown -d crownxpress`, restart `unless-stopped`.
 
 ---
 
