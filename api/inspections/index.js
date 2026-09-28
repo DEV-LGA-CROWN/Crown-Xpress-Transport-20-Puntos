@@ -16,7 +16,8 @@ export default async function handler(req, res) {
     
     if (req.method === 'GET') {
       // List inspections
-      const limit = parseInt(req.query.limit) || 50
+      const allRows = req.query.limit === 'all'
+      const limit = allRows ? null : (parseInt(req.query.limit) || 50)
       const offset = parseInt(req.query.offset) || 0
       const yardCode = req.query.yardCode
       const guardName = req.query.guardName
@@ -57,28 +58,44 @@ export default async function handler(req, res) {
           countParams.push(guardName)
         }
 
-        const listQuery = `SELECT ${selectColumns} FROM inspections WHERE ${listWhere} ORDER BY created_at DESC LIMIT $${++paramIdx} OFFSET $${++paramIdx}`
-        inspections = await sql.query(listQuery, [...listParams, limit, offset])
+        let listQuery = `SELECT ${selectColumns} FROM inspections WHERE ${listWhere} ORDER BY created_at DESC`
+        if (allRows) {
+          inspections = await sql.query(listQuery, listParams)
+        } else {
+          listQuery += ` LIMIT $${++paramIdx} OFFSET $${++paramIdx}`
+          inspections = await sql.query(listQuery, [...listParams, limit, offset])
+        }
         const countQuery = `SELECT COUNT(*) as total FROM inspections WHERE ${countWhere}`
         countResult = await sql.query(countQuery, countParams)
       } else if (guardName) {
-        inspections = await sql`
-          SELECT
-            ${sql.unsafe(selectColumns)}
-          FROM inspections
-          WHERE guard_name = ${guardName}
-          ORDER BY created_at DESC
-          LIMIT ${limit} OFFSET ${offset}
-        `
+        inspections = allRows
+          ? await sql`
+              SELECT ${sql.unsafe(selectColumns)}
+              FROM inspections
+              WHERE guard_name = ${guardName}
+              ORDER BY created_at DESC
+            `
+          : await sql`
+              SELECT ${sql.unsafe(selectColumns)}
+              FROM inspections
+              WHERE guard_name = ${guardName}
+              ORDER BY created_at DESC
+              LIMIT ${limit} OFFSET ${offset}
+            `
         countResult = await sql`SELECT COUNT(*) as total FROM inspections WHERE guard_name = ${guardName}`
       } else {
-        inspections = await sql`
-          SELECT
-            ${sql.unsafe(selectColumns)}
-          FROM inspections
-          ORDER BY created_at DESC
-          LIMIT ${limit} OFFSET ${offset}
-        `
+        inspections = allRows
+          ? await sql`
+              SELECT ${sql.unsafe(selectColumns)}
+              FROM inspections
+              ORDER BY created_at DESC
+            `
+          : await sql`
+              SELECT ${sql.unsafe(selectColumns)}
+              FROM inspections
+              ORDER BY created_at DESC
+              LIMIT ${limit} OFFSET ${offset}
+            `
         countResult = await sql`SELECT COUNT(*) as total FROM inspections`
       }
 

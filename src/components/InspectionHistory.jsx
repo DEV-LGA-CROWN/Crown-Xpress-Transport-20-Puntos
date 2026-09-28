@@ -30,15 +30,15 @@ export default function InspectionHistory() {
 
         if (isAdmin) {
           // Admin: ver todas las inspecciones de todas las yardas
-          res = await listInspections({ limit: 200 })
+          res = await listInspections({ limit: 'all' })
         } else if (isSupervisor) {
           // Supervisor: filter by yard_assignments
           const userYards = user?.yard_assignments || []
           const yardCodes = userYards.length > 0 ? userYards.map(ya => ya.yard_code).join(',') : user?.location_name || ''
-          res = await listInspections({ limit: 200, yardCode: yardCodes })
+          res = await listInspections({ limit: 'all', yardCode: yardCodes })
         } else {
           // Guard: filter by their own name (guard_name)
-          res = await listInspections({ limit: 200, guardName: user?.full_name })
+          res = await listInspections({ limit: 'all', guardName: user?.full_name })
         }
 
         console.log('Inspections loaded:', res)

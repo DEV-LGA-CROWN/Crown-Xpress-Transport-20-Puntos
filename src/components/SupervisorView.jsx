@@ -75,7 +75,7 @@ export default function SupervisorView() {
           const userYards = user?.yard_assignments || []
           yardCodes = userYards.length > 0 ? userYards.map(ya => ya.yard_code).join(',') : user?.location_name || ''
         }
-        const res = await listInspections({ limit: 5000, yardCode: yardCodes })
+        const res = await listInspections({ limit: 'all', yardCode: yardCodes })
         setInspections(res.data || [])
       } catch (err) {
         setError(err.message)
@@ -372,7 +372,7 @@ export default function SupervisorView() {
       }
 
       // Refresh inspections list
-      const res = await listInspections({ limit: 500 })
+      const res = await listInspections({ limit: 'all' })
       setInspections(res.data || [])
 
       setShowSignatureModal(false)

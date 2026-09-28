@@ -81,9 +81,10 @@ export async function updateInspectionPdf(id, pdfBase64, pdfFilename) {
 }
 
 /** List inspections (paginated) */
-export async function listInspections({ limit = 50, offset = 0, yardCode = '' } = {}) {
+export async function listInspections({ limit = 50, offset = 0, yardCode = '', guardName = '' } = {}) {
   const params = { limit, offset }
   if (yardCode) params.yardCode = yardCode
+  if (guardName) params.guardName = guardName
   const qs = new URLSearchParams(params)
   const res = await fetchJson(`${API_BASE}/inspections?${qs}`)
   return res // { data, limit, offset }
