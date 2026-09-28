@@ -75,7 +75,7 @@ export default function SupervisorView() {
           const userYards = user?.yard_assignments || []
           yardCodes = userYards.length > 0 ? userYards.map(ya => ya.yard_code).join(',') : user?.location_name || ''
         }
-        const res = await listInspections({ limit: 500, yardCode: yardCodes })
+        const res = await listInspections({ limit: 5000, yardCode: yardCodes })
         setInspections(res.data || [])
       } catch (err) {
         setError(err.message)
@@ -486,7 +486,7 @@ export default function SupervisorView() {
             {/* Trailer */}
             <div>
               <label className="text-xs font-semibold text-slate-600 mb-1 flex items-center gap-1">
-                <Truck className="w-3 h-3" /> Trailer
+                <Truck className="w-3 h-3" /> {language === 'es' ? 'Unidad' : 'Unit'}
               </label>
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
@@ -584,7 +584,7 @@ export default function SupervisorView() {
                 {[
                   { id: 'yard', label: language === 'es' ? 'Yarda' : 'Yard' },
                   { id: 'guard', label: language === 'es' ? 'Guardia' : 'Guard' },
-                  { id: 'trailer', label: 'Trailer' },
+                  { id: 'trailer', label: language === 'es' ? 'Unidad' : 'Unit' },
                   { id: 'none', label: language === 'es' ? 'Sin grupo' : 'None' },
                 ].map(opt => (
                   <button
@@ -695,7 +695,7 @@ export default function SupervisorView() {
                           </div>
                           <div className="bg-purple-50 rounded-lg py-2 px-3 text-center">
                             <div className="text-sm font-bold text-purple-600">{insp.trailer_type || '—'}</div>
-                            <div className="text-xs text-purple-700">{language === 'es' ? 'Tipo Remolque' : 'Trailer Type'}</div>
+                            <div className="text-xs text-purple-700">{language === 'es' ? 'Tipo Unidad' : 'Unit Type'}</div>
                           </div>
                         </div>
                         {/* Additional Details */}

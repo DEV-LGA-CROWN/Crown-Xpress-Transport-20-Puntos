@@ -652,6 +652,47 @@ El botón **Limpiar** resetea ambos filtros junto con los existentes.
 
 ---
 
+## 📋 Septiembre 28, 2026 — Migración de datos Neon → VPS + ajustes Vista Supervisor
+
+### Migración completa de Neon a PostgreSQL en IONOS
+
+**Contexto:** La BD legacy en Neon (PostgreSQL 17) se vació por completo a `crownxpress` en `20-puntos-crown-postgres` (PostgreSQL 16) del VPS.
+
+**Método:** `pg_dump` no era compatible (PG16 client vs PG17 server). Se usó `postgres_fdw` dentro del contenedor para conectar Neon→VPS y merge en una transacción con remapeo de IDs.
+
+**Datos migrados:**
+
+| Tabla | Insertadas | Total VPS |
+|-------|-----------|-----------|
+| inspections | 1,011 | 1,728 |
+| inspection_points | 20,220 | 34,552 |
+| audit_log | 3,345 | 5,482 |
+| tpr | 1,113 | 1,443 |
+| yard_assignments | 6 | — |
+| operators | 20 | 20 |
+| yards | 1 | 9 |
+| locations | 0 | 5 |
+| **users/employees** | **0 (excluidos a petición)** | — |
+
+**Reglas aplicadas:**
+- IDs nuevos vía serial — ningún registro existente fue sobreescrito
+- FKs remapeadas: `inspection_id`, `location_id` (por nombre), `employee_id`/`user_id`/`assigned_by` (por username), `yard_id` (por code), `original_inspection_id`
+- `tpr` deduplicado por `sql_id`
+- `issue_id` casteado text→integer
+- `has_photo` calculado desde `photo IS NOT NULL`
+- 14 inspecciones importadas sin `location` → asignadas a `CXT6` (todas las inspecciones quedaron en CXT6, total 1,728)
+- Limpieza: schema `neon` y server FDW eliminados al terminar (no quedan credenciales en el VPS)
+
+**Backup previo:** `/root/crownxpress_backup_preimport.sql.gz` (164MB) en el VPS.
+
+### Ajustes Vista Supervisor
+
+Commit pendiente — `src/components/SupervisorView.jsx`:
+- `limit` de listInspections subido de 500 → 5000 (para mostrar todas las inspecciones importadas)
+- Renombrado "Trailer" → "Unidad" en: filtro, opción de agrupar, y etiqueta "Tipo Remolque" → "Tipo Unidad"
+
+---
+
 *Documento generado el 15 de Junio de 2026*
-*Última actualización: 25 de Septiembre de 2026*
+*Última actualización: 28 de Septiembre de 2026*
 *Crown Xpress Transport - Sistema de Inspección de 20 Puntos*
