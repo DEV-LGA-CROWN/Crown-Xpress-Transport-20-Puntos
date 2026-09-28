@@ -171,17 +171,28 @@ export default async function handler(req, res) {
       }
 
       // Update inspection with supervisor signature and mark as completed
-      const result = await sql`
-        UPDATE inspections
-        SET supervisor_name = ${name},
-            supervisor_signature = ${signature || null},
-            supervisor_signed_at = ${signedAt},
-            status = 'completed',
-            updated_at = NOW()
-            ${Object.keys(pdfUpdate).length > 0 ? sql`, pdf_filename = ${pdfUpdate.pdf_filename}, pdf_url = ${pdfUpdate.pdf_url}, pdf_data = NULL, pdf_size_bytes = ${pdfUpdate.pdf_size_bytes}` : sql``}
-        WHERE id = ${inspectionId}
-        RETURNING *
-      `
+      const setClauses = [
+        'supervisor_name = $1',
+        'supervisor_signature = $2',
+        'supervisor_signed_at = $3',
+        "status = 'completed'",
+        'updated_at = NOW()'
+      ]
+      const params = [name, signature || null, signedAt]
+      if (Object.keys(pdfUpdate).length > 0) {
+        setClauses.push(`pdf_filename = $${params.length + 1}`)
+        params.push(pdfUpdate.pdf_filename)
+        setClauses.push(`pdf_url = $${params.length + 1}`)
+        params.push(pdfUpdate.pdf_url)
+        setClauses.push('pdf_data = NULL')
+        setClauses.push(`pdf_size_bytes = $${params.length + 1}`)
+        params.push(pdfUpdate.pdf_size_bytes)
+      }
+      params.push(inspectionId)
+      const result = await sql.query(
+        `UPDATE inspections SET ${setClauses.join(', ')} WHERE id = $${params.length} RETURNING *`,
+        params
+      )
 
       console.log('Update result:', result.length > 0 ? 'Success' : 'Failed')
       if (result.length > 0) {
