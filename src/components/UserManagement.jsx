@@ -122,6 +122,13 @@ export default function UserManagement() {
 
   const handleSubmitClick = (e) => {
     e.preventDefault()
+    // Validar que el usuario tenga al menos una yarda asignada
+    if (!formData.yard_assignments || formData.yard_assignments.length === 0) {
+      alert(language === 'es'
+        ? 'No se puede guardar: el usuario debe tener al menos una yarda asignada.'
+        : 'Cannot save: the user must have at least one assigned yard.')
+      return
+    }
     // Show confirmation modal before saving
     setConfirmModal({
       show: true,

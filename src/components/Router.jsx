@@ -56,6 +56,13 @@ export default function Router() {
   }
 
   const isAdmin = user?.role === 'admin'
+
+  // Un usuario no puede inspeccionar sin yarda asignada
+  const userYards = (user?.yard_assignments || []).filter(ya => ya.is_active !== false)
+  const hasYard = userYards.length > 0 || !!user?.location_name
+  const noYardMessage = language === 'es'
+    ? 'No puedes crear inspecciones porque no tienes una yarda asignada. Contacta al administrador.'
+    : 'You cannot create inspections because you have no assigned yard. Contact the administrator.'
   
   const tabs = [
     canEdit() && { id: 'form', label: 'v1 - Vista Clásica', icon: FileText },
@@ -97,7 +104,15 @@ export default function Router() {
     <>
       <Nav />
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {page === 'form' && canEdit() && (
+        {page === 'form' && canEdit() && !hasYard && (
+          <div className="card">
+            <div className="card-body text-center py-12">
+              <MapPin className="w-12 h-12 mx-auto text-amber-400 mb-3" />
+              <p className="text-slate-700 font-semibold">{noYardMessage}</p>
+            </div>
+          </div>
+        )}
+        {page === 'form' && canEdit() && hasYard && (
           <div className="space-y-5">
             <UnitInfo onFlowComplete={setUnitInfoFlowComplete} />
             {/* For BOBTAIL: go directly to 20 points, no button needed */}
@@ -127,7 +142,15 @@ export default function Router() {
             )}
           </div>
         )}
-        {page === 'guided' && canEdit() && (
+        {page === 'guided' && canEdit() && !hasYard && (
+          <div className="card">
+            <div className="card-body text-center py-12">
+              <MapPin className="w-12 h-12 mx-auto text-amber-400 mb-3" />
+              <p className="text-slate-700 font-semibold">{noYardMessage}</p>
+            </div>
+          </div>
+        )}
+        {page === 'guided' && canEdit() && hasYard && (
           <div className="space-y-5">
             <GuidedInspection />
           </div>

@@ -26,6 +26,12 @@ export async function createInspection(req, res) {
       return res.status(400).json({ error: 'Guard signature is required' })
     }
 
+    // Rechazar inspecciones sin yarda: location viene de unitInfo.location
+    const reqLocation = (unitInfo.location || '').toString().trim()
+    if (!reqLocation) {
+      return res.status(400).json({ error: 'No yard assigned. The inspection must have a location (yard code).' })
+    }
+
     const sql = getSql()
     const ip = getClientIp(req)
     const ua = req.headers['user-agent'] || null
