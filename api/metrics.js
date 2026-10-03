@@ -186,7 +186,56 @@ export default async function handler(req, res) {
           completed: Number(stats.completed) || 0,
           pending: Number(stats.pending) || 0,
         }
-      }).sort((a, b) => b.total_inspections - a.total_inspections)
+      })
+
+      // Inspecciones cuya location no coincide con una yarda activa (o es NULL)
+      // no deben desaparecer del reporte: se agrupan en filas visibles para que
+      // el total "por yarda" cuadre con "por guardia".
+      const catalogCodes = new Set(yards.map(y => String(y.code || '').trim().toUpperCase()))
+      const orphanMap = new Map()
+      for (const row of yardMetrics) {
+        const loc = String(row.location || '').trim().toUpperCase()
+        if (!catalogCodes.has(loc)) {
+          const key = loc || '(SIN YARDA)'
+          const prev = orphanMap.get(key) || { total_inspections: 0, completed: 0, pending: 0 }
+          orphanMap.set(key, {
+            total_inspections: prev.total_inspections + Number(row.total_inspections) || 0,
+            completed: prev.completed + Number(row.completed) || 0,
+            pending: prev.pending + Number(row.pending) || 0,
+          })
+        }
+      }
+      // Las filas sin location fueron excluidas por el WHERE; las contamos aparte
+      const nullLocationRows = await sql`
+        SELECT
+          COUNT(CASE WHEN status <> 'superseded' THEN 1 END) as total_inspections,
+          COUNT(CASE WHEN status IN ('completed', 'audited') THEN 1 END) as completed,
+          COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending
+        FROM inspections
+        WHERE ${sql.unsafe(dateCondition)}
+          AND (location IS NULL OR TRIM(location) = '')
+      `
+      const nullStats = nullLocationRows[0] || {}
+      if (Number(nullStats.total_inspections) > 0) {
+        const prev = orphanMap.get('(SIN YARDA)') || { total_inspections: 0, completed: 0, pending: 0 }
+        orphanMap.set('(SIN YARDA)', {
+          total_inspections: prev.total_inspections + Number(nullStats.total_inspections),
+          completed: prev.completed + Number(nullStats.completed),
+          pending: prev.pending + Number(nullStats.pending),
+        })
+      }
+      for (const [key, stats] of orphanMap) {
+        byYard.push({
+          yard_id: null,
+          yard_name: key === '(SIN YARDA)' ? 'Sin yarda asignada' : key,
+          yard_code: key,
+          yard_type: 'other',
+          total_inspections: stats.total_inspections,
+          completed: stats.completed,
+          pending: stats.pending,
+        })
+      }
+      byYard.sort((a, b) => b.total_inspections - a.total_inspections)
     }
 
     // ============================================================

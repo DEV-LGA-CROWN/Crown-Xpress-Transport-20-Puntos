@@ -721,6 +721,41 @@ Commit pendiente — `src/components/SupervisorView.jsx`:
 
 ---
 
+## Octubre 3, 2026 — Pendientes NBCW, métricas y validación de yarda
+
+### Pendientes "no inspeccionadas" (177)
+
+Investigación sobre por qué la vista NBCW muestra ~177 pendientes en últimos 3 días:
+
+| Concepto | Cantidad |
+|---|---|
+| Movimientos TPR `fromd='CXT6'` últimos 3 días | 208 |
+| Ya inspeccionados (match exacto por `work_order::sql_id`) | 34 |
+| **Pendientes reales** | **~174** |
+
+**Conclusión:** los pendientes SON reales — son movimientos NBCW distintos (cada uno con `sql_id` único) que no tienen inspección ligada. No son duplicados de lo ya inspeccionado: el cruce usa el `sql_id` estable del movimiento, así que un equipo/work order repetido con nuevo `sql_id` correctamente aparece como pendiente. Solo ~8 pendientes comparten tractor con inspecciones manuales sin `sql_id` (caso borde).
+
+### Discrepancia métricas: por yarda 22 vs por guardia 35
+
+**Causa:** RICARDO creó 35 inspecciones el 3-oct — 22 con `location='CXT6'` y **13 con `location` vacío** (usuario pudo inspeccionar sin yarda asignada antes del fix).
+
+- "Por yarda" solo cuenta inspecciones cuya `location` coincide con una yarda activa → 22 (las 13 sin yarda se descartaban silenciosamente).
+- "Por guardia" agrupa por `guard_name` sin exigir `location` → 35.
+
+**Fix de datos:** las 13 (+1 histórica) actualizadas a `CXT6`. Total inspections con yarda asignada: 1,814/1,814.
+
+**Fix de código** (`api/metrics.js`): inspecciones cuya `location` no coincide con yarda activa (o es NULL) ahora aparecen como fila "Sin yarda asignada" en "por yarda", para que el total siempre cuadre con "por guardia" y el problema sea visible en vez de oculto.
+
+### Validación de yarda asignada (commit `7fd34b8`)
+
+- `UserManagement.jsx`: bloquea crear/editar usuario sin `yard_assignments`.
+- `Router.jsx`: si el usuario no tiene yarda activa ni `location_name`, bloquea Vista Clásica e Inspección Guiada con mensaje "No puedes crear inspecciones porque no tienes una yarda asignada".
+- `api/_lib/handlers.js`: `createInspection` rechaza con 400 si `unitInfo.location` viene vacío (protege contra llamadas directas al API).
+
+Los 6 usuarios activos ya estaban asignados a CXT6 (Admin Crown, VICTOR, Cristian, Maria, Ricardo, Misael).
+
+---
+
 *Documento generado el 15 de Junio de 2026*
-*Última actualización: 28 de Septiembre de 2026*
+*Última actualización: 3 de Octubre de 2026*
 *Crown Xpress Transport - Sistema de Inspección de 20 Puntos*
