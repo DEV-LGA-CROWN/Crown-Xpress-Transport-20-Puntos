@@ -54,6 +54,7 @@ export default defineConfig({
         ],
       },
       manifest: {
+        lang: 'es',
         name: 'Crown Xpress Transport · Inspección',
         short_name: 'Crown Inspección',
         description: 'Sistema de Inspección de 20 Puntos - Crown Xpress Transport',

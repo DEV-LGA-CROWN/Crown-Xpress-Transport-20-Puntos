@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { MapPin, Plus, Edit2, Trash2, Save, X, Search, Building, Truck, Package, Settings, Users, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { useLanguage } from '../context/LanguageContext'
+import { authFetch } from '../utils/api'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -54,7 +55,7 @@ export default function YardManagement() {
   async function loadYards() {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/yard-management?type=yards`)
+      const res = await authFetch(`${API_BASE}/yard-management?type=yards`)
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       setYards(Array.isArray(data.data) ? data.data : [])
@@ -80,7 +81,7 @@ export default function YardManagement() {
       const method = editingId ? 'PUT' : 'POST'
       const body = editingId ? { ...formData, id: editingId } : formData
 
-      const res = await fetch(`${API_BASE}/yard-management?type=yards`, {
+      const res = await authFetch(`${API_BASE}/yard-management?type=yards`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -136,7 +137,7 @@ export default function YardManagement() {
   const handleDelete = async (id) => {
     setSaving(true)
     try {
-      const res = await fetch(`${API_BASE}/yard-management?type=yards&id=${id}`, { method: 'DELETE' })
+      const res = await authFetch(`${API_BASE}/yard-management?type=yards&id=${id}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       await loadYards()

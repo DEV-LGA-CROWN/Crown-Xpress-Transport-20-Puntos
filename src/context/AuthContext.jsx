@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { authFetch, getAuthToken } from '../utils/api'
 
 const AuthContext = createContext()
 
@@ -13,8 +14,18 @@ export function AuthProvider({ children }) {
 
   // Logout function - defined early so it can be used in resetInactivityTimer
   const logout = useCallback(() => {
+    // Invalidar sesión en el servidor (no bloqueante)
+    const token = getAuthToken()
+    if (token) {
+      const API_BASE = import.meta.env.VITE_API_URL || '/api'
+      fetch(`${API_BASE}/auth`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {})
+    }
     setUser(null)
     localStorage.removeItem('crown_user')
+    localStorage.removeItem('crown_token')
     localStorage.removeItem('crown_last_activity')
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -64,7 +75,7 @@ export function AuthProvider({ children }) {
         // Refrescar en segundo plano para obtener asignaciones de yarda actualizadas
         if (parsed?.id) {
           const API_BASE = import.meta.env.VITE_API_URL || '/api'
-          fetch(`${API_BASE}/employees?id=${parsed.id}`)
+          authFetch(`${API_BASE}/employees?id=${parsed.id}`)
             .then(r => r.json())
             .then(d => {
               if (d.data) {
@@ -168,6 +179,10 @@ export function AuthProvider({ children }) {
         throw new Error('Usuario desactivado. Contacte al administrador.')
       }
       
+      if (data.token) {
+        localStorage.setItem('crown_token', data.token)
+      }
+
       const session = {
         id: data.user.id,
         username: data.user.username,
@@ -193,7 +208,7 @@ export function AuthProvider({ children }) {
     if (!user?.id) return null
     const API_BASE = import.meta.env.VITE_API_URL || '/api'
     try {
-      const res = await fetch(`${API_BASE}/employees?id=${user.id}`)
+      const res = await authFetch(`${API_BASE}/employees?id=${user.id}`)
       const data = await res.json()
       if (data.data) {
         const emp = data.data

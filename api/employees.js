@@ -1,15 +1,19 @@
 import { getSql } from './_lib/db.js'
+import { requireAuth, requireRole, hashPassword } from './_lib/session.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
   }
 
   try {
+    const authUser = await requireAuth(req, res)
+    if (!authUser) return
+
     const sql = getSql()
     
     // GET - List employees OR search operator by employee_number OR search by name OR list all operators
@@ -95,7 +99,7 @@ export default async function handler(req, res) {
       // If id is provided, get single employee with yard assignments
       if (req.query.id) {
         const [employee] = await sql`
-          SELECT e.id, e.username, e.password_hash, e.password, e.full_name, e.role, e.location_id, e.location_name, e.active, e.created_at, e.profile_photo
+          SELECT e.id, e.username, e.full_name, e.role, e.location_id, e.location_name, e.active, e.created_at, e.profile_photo
           FROM employees e
           WHERE e.id = ${parseInt(req.query.id)}
         `
@@ -119,7 +123,7 @@ export default async function handler(req, res) {
 
       // Otherwise, list all employees with yard assignments
       const employees = await sql`
-        SELECT e.id, e.username, e.password_hash, e.full_name, e.role, e.location_id, e.location_name, e.active, e.created_at, e.profile_photo
+        SELECT e.id, e.username, e.full_name, e.role, e.location_id, e.location_name, e.active, e.created_at, e.profile_photo
         FROM employees e
         ORDER BY role, full_name
       `
@@ -183,8 +187,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ data: employees })
     }
 
-    // POST - Create new employee
+    // POST - Create new employee (solo admin)
     if (req.method === 'POST') {
+      if (!requireRole(authUser, ['admin'], res)) return
       const { username, password, full_name, role, location_id, location_name, profile_photo } = req.body
 
       if (!username || !password || !full_name || !role) {
@@ -197,17 +202,19 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Username already exists' })
       }
 
+      const bcryptHash = await hashPassword(password)
       const [employee] = await sql`
-        INSERT INTO employees (username, password_hash, full_name, role, location_id, location_name, profile_photo)
-        VALUES (${username}, ${password}, ${full_name}, ${role}, ${location_id || null}, ${location_name || null}, ${profile_photo || null})
+        INSERT INTO employees (username, password_hash, password_bcrypt, full_name, role, location_id, location_name, profile_photo)
+        VALUES (${username}, ${password}, ${bcryptHash}, ${full_name}, ${role}, ${location_id || null}, ${location_name || null}, ${profile_photo || null})
         RETURNING id, username, full_name, role, location_id, location_name, active, created_at, profile_photo
       `
 
       return res.status(201).json({ success: true, employee })
     }
 
-    // PUT - Update employee
+    // PUT - Update employee (solo admin)
     if (req.method === 'PUT') {
+      if (!requireRole(authUser, ['admin'], res)) return
       const { id, username, password, full_name, role, location_id, location_name, active, profile_photo, yard_assignments } = req.body
 
       if (!id) {
@@ -217,10 +224,12 @@ export default async function handler(req, res) {
       // Build update query dynamically
       let updateQuery
       if (password) {
+        const bcryptHash = await hashPassword(password)
         updateQuery = await sql`
           UPDATE employees SET
             username = ${username},
             password_hash = ${password},
+            password_bcrypt = ${bcryptHash},
             full_name = ${full_name},
             role = ${role},
             location_id = ${location_id || null},
@@ -275,8 +284,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, employee: updateQuery[0] })
     }
 
-    // DELETE - Deactivate or permanently delete employee
+    // DELETE - Deactivate or permanently delete employee (solo admin)
     if (req.method === 'DELETE') {
+      if (!requireRole(authUser, ['admin'], res)) return
       const { id, permanent } = req.query
 
       if (!id) {

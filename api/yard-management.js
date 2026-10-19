@@ -1,15 +1,21 @@
 import { getSql } from './_lib/db.js'
+import { requireAuth, requireRole } from './_lib/session.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
   }
 
   try {
+    const authUser = await requireAuth(req, res)
+    if (!authUser) return
+    // Crear/editar/borrar yardas y asignaciones: solo admin
+    if (req.method !== 'GET' && !requireRole(authUser, ['admin'], res)) return
+
     const sql = getSql()
     const { method, query } = req
     const { type } = query

@@ -1,14 +1,18 @@
 import { getSql } from '../_lib/db.js'
 import { uploadPdf, downloadPdfBuffer, isBlobConfigured } from '../_lib/blob.js'
+import { requireAuth } from '../_lib/session.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
   }
+
+  const authUser = await requireAuth(req, res)
+  if (!authUser) return
 
   // Check both req.query and req.params for id (Express compatibility)
   const id = req.query.id || req.params.id

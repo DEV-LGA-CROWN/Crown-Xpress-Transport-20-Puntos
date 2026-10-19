@@ -3,7 +3,7 @@
  * pendientes creadas offline.
  */
 import { getPendingInspections, markPendingSyncing, markPendingSynced, markPendingFailed, clearSyncedPending, isOnline } from './offlineDB'
-import { updateInspectionPdf } from './api'
+import { updateInspectionPdf, getAuthHeaders } from './api'
 
 let syncing = false
 let listeners = []
@@ -43,7 +43,7 @@ export async function syncPendingInspections() {
       const API_BASE = import.meta.env.VITE_API_URL || '/api'
       const res = await fetch(`${API_BASE}/inspections`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(item.payload),
       })
       if (!res.ok) {

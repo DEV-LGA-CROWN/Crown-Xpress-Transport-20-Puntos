@@ -1,9 +1,10 @@
 import { reconfirmInspection } from '../../_lib/handlers.js'
+import { requireAuth } from '../../_lib/session.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
@@ -12,6 +13,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
+
+  const authUser = await requireAuth(req, res)
+  if (!authUser) return
 
   // Extract id from the path
   const { id } = req.query
