@@ -39,11 +39,26 @@ CREATE TABLE IF NOT EXISTS employees (
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW(),
     profile_photo   TEXT,
-    password        VARCHAR(255)
+    password        VARCHAR(255),
+    -- bcrypt hash real (legacy: password_hash/password guardan plaintext;
+    -- se eliminan cuando producción ya no las use)
+    password_bcrypt VARCHAR(255)
 );
 
 CREATE INDEX IF NOT EXISTS idx_employees_active ON employees(active);
 CREATE INDEX IF NOT EXISTS idx_employees_role   ON employees(role);
+
+-- ============================================================
+-- SESSIONS (tokens Bearer para auth server-side)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sessions (
+    token           TEXT PRIMARY KEY,
+    employee_id     INT NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at      TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 
 -- ============================================================
 -- OPERATORS (Operadores de unidades)

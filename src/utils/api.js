@@ -7,6 +7,36 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api'
 // Modo offline solo activo en preproduccion
 const OFFLINE_ENABLED = import.meta.env.VITE_OFFLINE_MODE === 'true'
 
+/** Token de sesión guardado en login */
+export function getAuthToken() {
+  return localStorage.getItem('crown_token') || null
+}
+
+export function getAuthHeaders() {
+  const token = getAuthToken()
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+// Sesión expirada/inválida: limpiar y volver al login
+function handleUnauthorized() {
+  localStorage.removeItem('crown_user')
+  localStorage.removeItem('crown_token')
+  localStorage.removeItem('crown_last_activity')
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/'
+  }
+}
+
+/** fetch con Authorization automático; 401 → logout forzado */
+export async function authFetch(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...getAuthHeaders(), ...(options.headers || {}) },
+  })
+  if (res.status === 401) handleUnauthorized()
+  return res
+}
+
 /** Get supervisors by yard code */
 export async function getSupervisorsByYard(yardCode) {
   const res = await fetchJson(`${API_BASE}/employees?role=supervisor`)
@@ -20,9 +50,10 @@ export async function getSupervisorsByYard(yardCode) {
 /** Helper to handle fetch errors */
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders(), ...options.headers },
   })
+  if (res.status === 401) handleUnauthorized()
   
   // Clone response before reading body (in case we need to read it twice)
   const text = await res.text()
@@ -98,7 +129,7 @@ export async function getInspection(id) {
 
 /** Download PDF binary */
 export async function downloadPdf(id) {
-  const res = await fetch(`${API_BASE}/inspections/${id}?pdf=true`)
+  const res = await authFetch(`${API_BASE}/inspections/${id}?pdf=true`)
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     throw new Error(`Failed to download PDF: ${res.status} ${text}`)

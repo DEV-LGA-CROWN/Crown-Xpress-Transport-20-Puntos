@@ -1,17 +1,21 @@
 import { getSql } from '../_lib/db.js'
 import { createInspection } from '../_lib/handlers.js'
+import { requireAuth } from '../_lib/session.js'
 
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
   }
 
   try {
+    const authUser = await requireAuth(req, res)
+    if (!authUser) return
+
     const sql = getSql()
     
     if (req.method === 'GET') {

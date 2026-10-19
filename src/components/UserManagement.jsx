@@ -3,6 +3,7 @@ import { Users, Plus, Edit2, Trash2, Save, X, Search, Shield, Eye, UserCheck, Cr
 import { useLanguage } from '../context/LanguageContext'
 import PaginationControls from './PaginationControls'
 import { usePagination } from '../hooks/usePagination'
+import { authFetch } from '../utils/api'
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
@@ -58,9 +59,9 @@ export default function UserManagement() {
     setLoading(true)
     try {
       const [employeesRes, yardsRes, assignmentsRes] = await Promise.all([
-        fetch(`${API_BASE}/employees`),
-        fetch(`${API_BASE}/yard-management?type=yards`),
-        fetch(`${API_BASE}/yard-management?type=assignments`)
+        authFetch(`${API_BASE}/employees`),
+        authFetch(`${API_BASE}/yard-management?type=yards`),
+        authFetch(`${API_BASE}/yard-management?type=assignments`)
       ])
 
       const employeesData = await employeesRes.json()
@@ -84,7 +85,7 @@ export default function UserManagement() {
   async function loadEmployees() {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/employees`)
+      const res = await authFetch(`${API_BASE}/employees`)
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       setEmployees(data.data || [])
@@ -144,7 +145,7 @@ export default function UserManagement() {
       const body = editingId ? { ...formData, id: editingId } : formData
 
 
-      const res = await fetch(`${API_BASE}/employees`, {
+      const res = await authFetch(`${API_BASE}/employees`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -214,7 +215,7 @@ export default function UserManagement() {
     setSaving(true)
     try {
       const emp = employees.find(e => e.id === id)
-      const res = await fetch(`${API_BASE}/employees`, {
+      const res = await authFetch(`${API_BASE}/employees`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...emp, id, active: true })
@@ -247,7 +248,7 @@ export default function UserManagement() {
   const handleDelete = async (id) => {
     setSaving(true)
     try {
-      const res = await fetch(`${API_BASE}/employees?id=${id}`, { method: 'DELETE' })
+      const res = await authFetch(`${API_BASE}/employees?id=${id}`, { method: 'DELETE' })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       await loadEmployees()
@@ -271,7 +272,7 @@ export default function UserManagement() {
     }
     setSaving(true)
     try {
-      const res = await fetch(`${API_BASE}/employees?id=${permanentDeleteModal.employee.id}&permanent=true`, { method: 'DELETE' })
+      const res = await authFetch(`${API_BASE}/employees?id=${permanentDeleteModal.employee.id}&permanent=true`, { method: 'DELETE' })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       await loadEmployees()

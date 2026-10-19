@@ -3,6 +3,7 @@ import { BarChart3, Users, Calendar, CheckCircle, Clock, AlertCircle, RefreshCw,
 import { useLanguage } from '../context/LanguageContext'
 import PaginationControls from './PaginationControls'
 import { usePagination } from '../hooks/usePagination'
+import { authFetch } from '../utils/api'
 
 function getLocalISODate(date = new Date()) {
   const year = date.getFullYear()
@@ -31,7 +32,7 @@ export default function MetricsView() {
         offset: now.getTimezoneOffset().toString(),
       })
 
-      const res = await fetch(`/api/metrics?${params}`)
+      const res = await authFetch(`/api/metrics?${params}`)
       const data = await res.json()
       
       if (data.success) {
