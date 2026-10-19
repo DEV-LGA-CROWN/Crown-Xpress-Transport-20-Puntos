@@ -756,6 +756,47 @@ Los 6 usuarios activos ya estaban asignados a CXT6 (Admin Crown, VICTOR, Cristia
 
 ---
 
+## Octubre 19, 2026 — Auditoría de seguridad y correcciones (rama `preproduccion`)
+
+Hallazgos de la auditoría y su corrección (commit `afa220f`):
+
+### Crítico — corregido
+
+1. **Contraseñas expuestas**: `GET /api/employees` devolvía `password_hash`/`password` en plaintext sin auth.
+   - Quitado de todos los SELECT de `employees.js`.
+   - Nueva columna `employees.password_bcrypt` (bcrypt `$2a$`, costo 10). Los 12 usuarios existentes migrados vía `pgcrypto` (`crypt(pw, gen_salt('bf',10))`).
+   - `auth.js` verifica bcrypt primero, fallback a plaintext (cubre passwords cambiadas desde producción) y migra lazy a bcrypt al loguear.
+   - **Pendiente al merge a main:** eliminar columnas `password_hash`/`password` plaintext de la DB.
+   - **Pendiente usuario:** rotar contraseñas — estuvieron públicas.
+
+2. **Sin auth server-side**: cualquier endpoint era llamable sin sesión.
+   - Nuevo `api/_lib/session.js`: tabla `sessions` (token Bearer, TTL 12h), `requireAuth`/`requireRole`.
+   - Protegidos: `employees`, `inspections/*`, `tpr`, `metrics`, `yard-management`.
+   - Mutaciones de employees/yard-management solo rol `admin`.
+   - `/api/auth`: POST login (público, devuelve token), DELETE logout.
+   - Frontend: `authFetch`/`fetchJson` adjuntan `Authorization: Bearer` desde `localStorage.crown_token`; 401 limpia sesión y redirige al login.
+
+3. **Indexable**: `public/robots.txt` (`Disallow: /`), `<meta name="robots" content="noindex,nofollow">` y header `X-Robots-Tag`.
+
+### Alto — corregido
+
+- `vercel.json` headers: CSP, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`.
+- Cache immutable (`max-age=31536000, immutable`) para `/assets/*` hasheados.
+
+### Medio — corregido
+
+- Manifest `lang: 'es'`.
+- CSP `script-src 'self'` bloquea scripts externos (cubre el caso pdfobject/CDN).
+
+### Notas
+
+- `password_hash`/`password` plaintext siguen en la DB intencionalmente: producción (rama `main`) comparte la misma BD (`crownxpress`) y su login compara plaintext. Al mergear a `main`, se pueden eliminar.
+- Producción (`main`) sigue con la API abierta hasta que se mergee `preproduccion`.
+- Sesión sigue en `localStorage` (mejorable a cookie httpOnly en el futuro).
+- `scripts/migrate-passwords.js`: utilidad para poblar `password_bcrypt` en otras BDs vía `DATABASE_URL` (ojo: el `.env` local apunta a Neon legacy, no al VPS).
+
+---
+
 *Documento generado el 15 de Junio de 2026*
-*Última actualización: 3 de Octubre de 2026*
+*Última actualización: 19 de Octubre de 2026*
 *Crown Xpress Transport - Sistema de Inspección de 20 Puntos*
