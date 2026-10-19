@@ -795,6 +795,28 @@ Hallazgos de la auditoría y su corrección (commit `afa220f`):
 - Sesión sigue en `localStorage` (mejorable a cookie httpOnly en el futuro).
 - `scripts/migrate-passwords.js`: utilidad para poblar `password_bcrypt` en otras BDs vía `DATABASE_URL` (ojo: el `.env` local apunta a Neon legacy, no al VPS).
 
+### Limpieza VPS: eliminación de `/opt/crown-postgres` (19-oct-2026)
+
+**Contexto:** el directorio `/opt/crown-postgres` quedó como residuo del rename a `/opt/20-puntos-crown-postgres` (28-sep-2026). NO es una base de datos ni un contenedor — no existe ningún contenedor `crown-postgres`.
+
+**Verificación previa:**
+
+| Check | Resultado |
+|---|---|
+| Contenido | Solo 2 subdirectorios vacíos (`init/`, `tls/`), 0 archivos |
+| Contenedores que lo montan | Ninguno — `20-puntos-crown-postgres` usa `/opt/20-puntos-crown-postgres/*` |
+| Referencias en cron/systemd | Ninguna |
+| Volumen `crown-postgres_pgdata` | Es nombre interno de Docker del proyecto original; el directorio no lo usa |
+
+**Backup de recuperación:** `/root/crown-postgres-dir-backup-20261019.tar.gz` (152 bytes, en el VPS). Restaurar con:
+```bash
+tar -xzf /root/crown-postgres-dir-backup-20261019.tar.gz -C /opt
+```
+
+**Acción:** `rm -rf /opt/crown-postgres` ejecutado tras el backup.
+
+**Recordatorio — estado real de BD:** solo existe `crownxpress` dentro de `20-puntos-crown-postgres`; producción y preproducción comparten esa BD. La segunda BD para preproducción sigue **pendiente**.
+
 ---
 
 *Documento generado el 15 de Junio de 2026*
